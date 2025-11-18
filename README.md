@@ -1,130 +1,77 @@
-🚀 Automated Data Purge System Using Azure Function App & Logic Apps
+# Automated Data Purge System Using Azure Function App & Logic Apps
 
-This repository contains a fully automated and serverless data purge workflow built on Microsoft Azure, designed to purge stale records from a PostgreSQL database and automatically send purge reports by email via Outlook 365.
+This repository contains an automated data purge solution built on **Azure Functions**, **Azure Database for PostgreSQL**, **Azure Storage (Blob)**, and **Azure Logic Apps**.
 
-The entire process is fully automated, secure, and scheduled to run weekly.
+The system:
 
-🌟 Architecture Summary
-Azure Function App (Timer Trigger)
-        ↓
-Connects to PostgreSQL & executes purge logic
-        ↓
-Generates purge summary (counts, stats, metadata)
-        ↓
-Uploads report to Azure Blob Storage
-        ↓
-Blob-triggered Azure Logic App
-        ↓
-Sends email through Outlook 365 with report attached
+1. Identifies and **purges old records** from a PostgreSQL database based on configurable retention rules.  
+2. Generates a **purge summary report** and stores it in an Azure Storage Blob container.  
+3. Triggers an **Azure Logic App** whenever a new purge report is created/updated and sends an **email via Outlook 365** with the report attached.  
+4. Runs automatically on a **weekly schedule (every Friday at 10 PM CST)** for hands-free operations.
 
-🧩 Components Used
-🔹 Azure Function App
+---
 
-Timer trigger executes every Friday at 10 PM CST
+## Table of Contents
 
-Connects to PostgreSQL using Key Vault secrets or Managed Identity
+- [Architecture Overview](#architecture-overview)
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Repository Structure](#repository-structure)
+---
 
-Performs:
+## Architecture Overview
 
-Data scan
+**High-level flow:**
 
-Purge based on business rules
+1. **Timer-triggered Azure Function**
+   - Runs every **Friday at 10 PM CST**.
+   - Connects to **Azure Database for PostgreSQL (Flexible Server)**.
+   - Identifies records older than a configured threshold (e.g., **> 90 days**).
+   - Purges eligible records from one or more tables.
+   - Generates a **summary report** (JSON/CSV/text) capturing:
+     - Tables processed  
+     - Row counts before and after purge  
+     - Number of rows deleted  
+     - Execution start/end time  
+     - Status (Success/Failure, Error details if any)
+   - Writes the report to an **Azure Blob Storage** container.
 
-Before/after row counts
+2. **Azure Logic App (Blob Trigger)**
+   - Triggered whenever a new blob is **added or modified** in the purge report container.
+   - Retrieves the purge report.
+   - Sends an **email via Outlook 365**, attaching the report and including a summary in the email body.
 
-Logging & validation
+---
 
-Uploads purge summary to Blob Storage
+## Features
 
-🔹 PostgreSQL Database
+- ✅ Configurable data retention (e.g., delete records older than N days)
+- ✅ Supports multiple tables and schemas
+- ✅ Automated **weekly schedule** (no manual intervention)
+- ✅ Detailed **purge summary report** stored in Blob Storage
+- ✅ Email notification with **attached report** via Logic App + Outlook 365
+- ✅ Centralized logging and monitoring via **Application Insights**
+- ✅ Secure configuration using **Azure Key Vault** (recommended)
 
-Stores operational data
+---
 
-Purge criteria (examples):
+## Technology Stack
 
-Records older than X days
+- **Azure Function App**
+  - Trigger: Timer
+  - Language: `C#` / `Python` / `Node.js` (choose as per your implementation)
+- **Azure Database for PostgreSQL**
+  - Flexible Server (recommended) or Single Server
+- **Azure Storage Account**
+  - Blob Container for purge reports
+- **Azure Logic Apps**
+  - Trigger: When a blob is added or modified (Blob Storage)
+  - Action: Outlook 365 – Send email with attachment
+- **Azure Key Vault** (optional but recommended for secrets)
+- **Application Insights** for monitoring and logging
+- **Azure DevOps / GitHub Actions** (optional) for CI/CD
 
-Records matching business flags
+---
 
-Designed for safe deletion (batch delete)
+## Repository Structure
 
-🔹 Azure Blob Storage
-
-Stores purge summary reports (CSV/JSON/TXT)
-
-Acts as historical audit trail
-
-Blob event triggers the Logic App
-
-🔹 Azure Logic Apps
-
-Trigger: “When a blob is added or modified”
-
-Reads the uploaded report
-
-Sends an email to Outlook 365 with:
-
-Report attached
-
-Execution metadata in email body
-
-🔹 Outlook 365
-
-Receives automated purge summary
-
-Used by:
-
-Operations team
-
-Business stakeholders
-
-Compliance & audit teams
-
-⏱️ Scheduling Details
-
-Weekly purge:
-🗓 Friday
-⏰ 10:00 PM CST
-⚙️ Function App Timer (CRON):
-
-0 0 22 ? * FRI *
-
-📊 Purge Report Includes
-
-Table name
-
-Total rows scanned
-
-Eligible rows
-
-Deleted rows
-
-Timestamp start/end
-
-Execution duration
-
-Error logs (if any)
-
-🔐 Security Highlights
-
-No credentials in code
-
-Azure Key Vault secrets or Managed Identity
-
-PostgreSQL protected with Private Endpoints
-
-RBAC-enabled access
-
-Application Insights for telemetry
-
-🏆 Benefits
-
-Fully automated, no manual intervention
-
-Reduces DB size and improves performance
-
-Ensures compliance with data retention policies
-
-Provides a clear audit trail via storage + email
-
-Scales efficiently and cost-effectively
